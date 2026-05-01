@@ -6,7 +6,7 @@ import {
   PASSWORD_MIN_LENGTH,
   TASK_TITLE_MAX_LENGTH,
   PROJECT_NAME_MAX_LENGTH,
-} from './constants';
+} from './constants.js';
 
 // Auth Schemas
 export const signupSchema = z.object({

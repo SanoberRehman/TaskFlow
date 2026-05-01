@@ -12,8 +12,8 @@ import type {
   createCommentSchema,
   updateProfileSchema,
   changePasswordSchema,
-} from './schemas';
-import type { ProjectRole, TaskStatus, TaskPriority, ActivityAction, EntityType } from './constants';
+} from './schemas.js';
+import type { ProjectRole, TaskStatus, TaskPriority, ActivityAction, EntityType } from './constants.js';
 
 // Infer types from Zod schemas
 export type SignupInput = z.infer<typeof signupSchema>;
