@@ -108,9 +108,9 @@ export function ProjectDetailPage() {
     enabled: !!id,
   });
 
-  const { data: tasksData, isLoading: tasksLoading } = useQuery({
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['tasks', id],
-    queryFn: () => api.get<{ data: TaskWithDetails[]; pagination: unknown }>(`/tasks/project/${id}?limit=100`),
+    queryFn: () => api.get<TaskWithDetails[]>(`/tasks/project/${id}?limit=100`),
     enabled: !!id,
   });
 
@@ -119,8 +119,6 @@ export function ProjectDetailPage() {
     queryFn: () => api.get<ActivityLog[]>(`/projects/${id}/activity`),
     enabled: !!id,
   });
-
-  const tasks = tasksData?.data || [];
   const myMembership = project?.members.find((m) => m.user.id === user?.id);
   const isAdmin = myMembership?.role === 'ADMIN';
 
