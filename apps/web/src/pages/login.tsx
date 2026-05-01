@@ -21,10 +21,16 @@ export function LoginPage() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   });
+
+  const fillCredentials = (email: string, password: string) => {
+    setValue('email', email);
+    setValue('password', password);
+  };
 
   const onSubmit = async (data: LoginInput) => {
     setIsLoading(true);
@@ -136,9 +142,23 @@ export function LoginPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Demo Credentials</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              <p><strong>Admin:</strong> admin@demo.com / Demo1234</p>
-              <p><strong>Member:</strong> member1@demo.com / Demo1234</p>
+            <CardContent className="space-y-2 text-sm">
+              <button
+                type="button"
+                onClick={() => fillCredentials('admin@demo.com', 'Demo1234')}
+                className="w-full rounded-md px-3 py-2 text-left transition-colors hover:bg-muted"
+              >
+                <span className="font-medium text-foreground">Admin:</span>{' '}
+                <span className="text-muted-foreground">admin@demo.com / Demo1234</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => fillCredentials('member1@demo.com', 'Demo1234')}
+                className="w-full rounded-md px-3 py-2 text-left transition-colors hover:bg-muted"
+              >
+                <span className="font-medium text-foreground">Member:</span>{' '}
+                <span className="text-muted-foreground">member1@demo.com / Demo1234</span>
+              </button>
             </CardContent>
           </Card>
         </div>

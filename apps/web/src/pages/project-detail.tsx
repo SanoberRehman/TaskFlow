@@ -27,6 +27,7 @@ import {
   Calendar,
   GripVertical,
 } from 'lucide-react';
+import { z } from 'zod';
 import {
   createTaskSchema,
   inviteMemberSchema,
@@ -65,6 +66,16 @@ import { cn, formatDate, formatRelativeDate, getInitials, getPriorityColor, isOv
 import { useAuth } from '@/contexts/auth-context';
 
 const STATUSES = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] as const;
+
+const createTaskFormSchema = createTaskSchema.extend({
+  dueDate: z.preprocess(
+    (val) => {
+      if (!val || val === '') return null;
+      return new Date(val as string).toISOString();
+    },
+    z.string().datetime().nullable().optional()
+  ),
+});
 const STATUS_LABELS: Record<string, string> = {
   TODO: 'To Do',
   IN_PROGRESS: 'In Progress',
@@ -561,7 +572,7 @@ function CreateTaskDialog({
     setValue,
     formState: { errors },
   } = useForm<CreateTaskInput>({
-    resolver: zodResolver(createTaskSchema),
+    resolver: zodResolver(createTaskFormSchema),
     defaultValues: { priority: 'MEDIUM', status: 'TODO' },
   });
 
