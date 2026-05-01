@@ -29,6 +29,12 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class InvalidCredentialsError extends AppError {
+  constructor() {
+    super('Invalid email or password', 401, 'INVALID_CREDENTIALS');
+  }
+}
+
 export class ForbiddenError extends AppError {
   constructor(message = 'You do not have permission to perform this action') {
     super(message, 403, 'FORBIDDEN');

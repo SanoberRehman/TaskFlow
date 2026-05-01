@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../lib/prisma';
 import { generateTokens, verifyRefreshToken } from '../lib/jwt';
-import { BadRequestError, ConflictError, UnauthorizedError } from '../lib/errors';
+import { BadRequestError, ConflictError, UnauthorizedError, InvalidCredentialsError } from '../lib/errors';
 import type { SignupInput, LoginInput, UpdateProfileInput, ChangePasswordInput } from '@taskflow/shared';
 
 function sanitizeUser(user: { id: string; email: string; name: string; avatarUrl: string | null; createdAt: Date }) {
@@ -48,12 +48,12 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      throw new BadRequestError('Invalid email or password');
+      throw new InvalidCredentialsError();
     }
 
     const validPassword = await bcrypt.compare(password, user.passwordHash);
     if (!validPassword) {
-      throw new BadRequestError('Invalid email or password');
+      throw new InvalidCredentialsError();
     }
 
     const tokens = generateTokens({ userId: user.id, email: user.email });
