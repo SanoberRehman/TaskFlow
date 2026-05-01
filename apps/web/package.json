@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "serve": "serve dist -l $PORT",
+    "start": "serve -s dist -l ${PORT:-3000}",
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
