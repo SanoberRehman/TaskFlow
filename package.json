@@ -1,0 +1,33 @@
+{
+  "name": "taskflow",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TaskFlow — Modern Project & Task Management Platform",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm run dev -w @taskflow/api",
+    "dev:web": "npm run dev -w @taskflow/web",
+    "build": "npm run build -w @taskflow/shared && npm run build -w @taskflow/api && npm run build -w @taskflow/web",
+    "build:api": "npm run build -w @taskflow/api",
+    "build:web": "npm run build -w @taskflow/web",
+    "db:migrate": "npm run db:migrate -w @taskflow/api",
+    "db:push": "npm run db:push -w @taskflow/api",
+    "db:seed": "npm run db:seed -w @taskflow/api",
+    "db:studio": "npm run db:studio -w @taskflow/api",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "clean": "rimraf node_modules apps/*/node_modules packages/*/node_modules"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
