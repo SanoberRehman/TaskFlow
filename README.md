@@ -1,363 +1,205 @@
 # TaskFlow
 
-**Modern Project & Task Management Platform**
+> Modern project & task management with role-based access control.
 
-A production-grade project management application with Kanban boards, team collaboration, and role-based access control.
+**Live demo:** https://web-production-d276d.up.railway.app  
+**API:** https://api-production-e0de.up.railway.app
 
-## Demo Credentials
+## Demo credentials
 
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@demo.com | Demo1234 |
-| Member | member1@demo.com | Demo1234 |
-| Member | member2@demo.com | Demo1234 |
+| Role   | Email              | Password |
+|--------|--------------------|----------|
+| Admin  | admin@demo.com     | Demo1234 |
+| Member | member1@demo.com   | Demo1234 |
+
+## Screenshots
+
+![Login](docs/screenshots/01-login.png)
+![Dashboard](docs/screenshots/02-dashboard.png)
+![Kanban](docs/screenshots/03-kanban.png)
+![RBAC](docs/screenshots/04-rbac.png)
 
 ## Features
 
-- [x] **Kanban Boards** — Drag-and-drop task management
-- [x] **Team Collaboration** — Invite members, assign roles
-- [x] **Role-Based Access Control** — Admin and Member permissions
-- [x] **Dashboard Analytics** — Task metrics and activity feed
-- [x] **Dark Mode** — System-aware theme switching
-- [x] **Command Palette** — Quick navigation (Cmd+K)
-- [x] **Keyboard Shortcuts** — Power user friendly
-- [x] **Real-time Activity** — Track all project changes
-- [x] **Comments** — Collaborate on tasks
-- [x] **Responsive Design** — Works on mobile
+- JWT auth with access + refresh tokens, bcrypt password hashing
+- Role-based access control (Admin / Member) enforced server-side on every mutation
+- Project + team management with member invites and role changes
+- Task creation, assignment, status tracking, comments
+- Kanban board with drag-and-drop (@dnd-kit) and optimistic updates
+- Dashboard: KPI cards, overdue tasks, recent activity, upcoming deadlines
+- Dark mode, command palette (Cmd+K), keyboard shortcuts
+- Skeleton loaders, toast notifications, empty states
 
-## Tech Stack
+## Tech stack
 
-| Layer | Technology | Reasoning |
-|-------|------------|-----------|
-| Backend | Node.js + Express + TypeScript | Industry standard, type-safe API |
-| Database | PostgreSQL + Prisma ORM | Relational data, type-safe queries |
-| Auth | JWT (access + refresh tokens) + bcrypt | Stateless, secure authentication |
-| Frontend | React + Vite + TypeScript | Fast dev experience, type safety |
-| Styling | TailwindCSS + shadcn/ui | Utility-first, accessible components |
-| State | TanStack Query + Zustand | Server state + UI state separation |
-| Forms | React Hook Form + Zod | Performant forms, shared validation |
-| Drag & Drop | @dnd-kit | Modern, accessible DnD |
-| Deployment | Railway | Simple monorepo deployment |
+**Backend:** Node.js, Express, TypeScript, Prisma, PostgreSQL, Zod, JWT, bcrypt  
+**Frontend:** React, Vite, TypeScript, TailwindCSS, shadcn/ui, TanStack Query, Zustand, React Hook Form  
+**Deployment:** Railway (api, web, postgres as separate services)
 
 ## Architecture
 
 ```mermaid
-graph TB
-    subgraph Frontend
-        Web[React SPA]
-        TQ[TanStack Query]
-        Zustand[Zustand Store]
+graph LR
+    subgraph Railway
+        Web[web<br/>React + Vite]
+        API[api<br/>Express]
+        DB[(postgres<br/>PostgreSQL)]
     end
     
-    subgraph Backend
-        API[Express API]
-        Auth[JWT Auth]
-        RBAC[RBAC Middleware]
-        Prisma[Prisma ORM]
+    subgraph Monorepo
+        Shared[packages/shared<br/>Zod schemas + types]
     end
     
-    subgraph Database
-        PG[(PostgreSQL)]
-    end
-    
-    Web --> TQ
-    TQ --> API
-    Zustand --> Web
-    API --> Auth
-    API --> RBAC
-    RBAC --> Prisma
-    Prisma --> PG
+    Web -->|VITE_API_URL| API
+    API -->|Prisma| DB
+    Web -.->|imports| Shared
+    API -.->|imports| Shared
 ```
 
-## Database Schema
+## RBAC matrix
 
-```mermaid
-erDiagram
-    User ||--o{ Project : owns
-    User ||--o{ ProjectMember : has
-    User ||--o{ Task : creates
-    User ||--o{ Task : assigned
-    User ||--o{ Comment : writes
-    User ||--o{ ActivityLog : performs
-    
-    Project ||--o{ ProjectMember : has
-    Project ||--o{ Task : contains
-    Project ||--o{ ActivityLog : logs
-    
-    Task ||--o{ Comment : has
-    
-    User {
-        uuid id PK
-        string email UK
-        string passwordHash
-        string name
-        string avatarUrl
-        datetime createdAt
-    }
-    
-    Project {
-        uuid id PK
-        string name
-        string description
-        uuid ownerId FK
-        datetime createdAt
-        datetime updatedAt
-    }
-    
-    ProjectMember {
-        uuid id PK
-        uuid projectId FK
-        uuid userId FK
-        enum role
-        datetime joinedAt
-    }
-    
-    Task {
-        uuid id PK
-        uuid projectId FK
-        string title
-        string description
-        enum status
-        enum priority
-        uuid assigneeId FK
-        uuid createdById FK
-        datetime dueDate
-        datetime completedAt
-        datetime createdAt
-        datetime updatedAt
-    }
-    
-    Comment {
-        uuid id PK
-        uuid taskId FK
-        uuid authorId FK
-        string body
-        datetime createdAt
-    }
-    
-    ActivityLog {
-        uuid id PK
-        uuid projectId FK
-        uuid actorId FK
-        enum action
-        enum entityType
-        uuid entityId
-        json metadata
-        datetime createdAt
-    }
-```
+| Action                      | Admin | Member |
+|-----------------------------|-------|--------|
+| Create project              | Yes   | Yes    |
+| Edit project settings       | Yes   | No     |
+| Delete project              | Yes   | No     |
+| Invite members              | Yes   | No     |
+| Change member roles         | Yes   | No     |
+| Create task                 | Yes   | Yes    |
+| Edit any task               | Yes   | No     |
+| Edit own task               | Yes   | Yes    |
+| Delete any task             | Yes   | No     |
+| Update assigned task status | Yes   | Yes    |
+| Comment on tasks            | Yes   | Yes    |
 
-## RBAC Matrix
+All enforced via Express middleware (`requireProjectRole`). 10/10 RBAC smoke tests pass.
 
-| Action | ADMIN | MEMBER |
-|--------|-------|--------|
-| View project | ✅ | ✅ |
-| Update project settings | ✅ | ❌ |
-| Delete project | ✅ | ❌ |
-| Invite members | ✅ | ❌ |
-| Remove members | ✅ | ❌ |
-| Change member roles | ✅ | ❌ |
-| Create tasks | ✅ | ✅ |
-| Edit any task | ✅ | ❌ |
-| Edit own task | ✅ | ✅ |
-| Update assigned task status | ✅ | ✅ |
-| Delete any task | ✅ | ❌ |
-| Delete own task | ✅ | ✅ |
-| Assign tasks | ✅ | ✅ |
-| Add comments | ✅ | ✅ |
-| View activity | ✅ | ✅ |
+## API endpoints
 
-## Local Development
+### Auth (`/api/v1/auth`)
 
-### Prerequisites
+| Method | Path              | Auth     | Description          |
+|--------|-------------------|----------|----------------------|
+| POST   | /signup           | No       | Create account       |
+| POST   | /login            | No       | Sign in              |
+| POST   | /refresh          | No       | Refresh access token |
+| POST   | /logout           | Required | Sign out             |
+| GET    | /me               | Required | Get current user     |
+| PATCH  | /profile          | Required | Update profile       |
+| POST   | /change-password  | Required | Change password      |
 
-- Node.js 20+
-- PostgreSQL 15+
-- npm 10+
+### Projects (`/api/v1/projects`)
 
-### Setup
+| Method | Path                   | Auth   | Role   | Description        |
+|--------|------------------------|--------|--------|--------------------|
+| GET    | /                      | Required | -      | List user projects |
+| POST   | /                      | Required | -      | Create project     |
+| GET    | /:id                   | Required | Member | Get project        |
+| PATCH  | /:id                   | Required | Admin  | Update project     |
+| DELETE | /:id                   | Required | Admin  | Delete project     |
+| POST   | /:id/members           | Required | Admin  | Invite member      |
+| PATCH  | /:id/members/:userId   | Required | Admin  | Update member role |
+| DELETE | /:id/members/:userId   | Required | Admin  | Remove member      |
+| GET    | /:id/activity          | Required | Member | Get activity log   |
+
+### Tasks (`/api/v1/tasks`)
+
+| Method | Path                  | Auth     | Role   | Description      |
+|--------|-----------------------|----------|--------|------------------|
+| GET    | /project/:projectId   | Required | Member | List tasks       |
+| POST   | /project/:projectId   | Required | Member | Create task      |
+| GET    | /:id                  | Required | -      | Get task         |
+| PATCH  | /:id                  | Required | -      | Update task      |
+| DELETE | /:id                  | Required | -      | Delete task      |
+| GET    | /:id/comments         | Required | -      | Get comments     |
+| POST   | /:id/comments         | Required | -      | Add comment      |
+
+### Dashboard (`/api/v1/dashboard`)
+
+| Method | Path | Auth     | Description         |
+|--------|------|----------|---------------------|
+| GET    | /    | Required | Get dashboard data  |
+
+## Local setup
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd taskflow
-
-# Install dependencies
+git clone https://github.com/SanoberRehman/TaskFlow.git
+cd TaskFlow
 npm install
-
-# Set up environment variables
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env
-
-# Edit apps/api/.env with your database credentials and JWT secrets
-
-# Generate Prisma client
+cp apps/api/.env.example apps/api/.env  # set DATABASE_URL, JWT secrets
 npm run db:generate -w @taskflow/api
-
-# Run database migrations
-npm run db:migrate -w @taskflow/api
-
-# Seed demo data
+npm run db:push -w @taskflow/api
 npm run db:seed -w @taskflow/api
-
-# Start development servers
 npm run dev
 ```
 
-The API runs on `http://localhost:3001` and the web app on `http://localhost:5173`.
+API runs on :3001, web on :5173.
 
-## API Documentation
+## Deployment
 
-### Authentication
+Deployed to Railway as a monorepo with three services:
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /api/v1/auth/signup | Create account |
-| POST | /api/v1/auth/login | Sign in |
-| POST | /api/v1/auth/refresh | Refresh access token |
-| POST | /api/v1/auth/logout | Sign out |
-| GET | /api/v1/auth/me | Get current user |
-| PATCH | /api/v1/auth/profile | Update profile |
-| POST | /api/v1/auth/change-password | Change password |
+| Service  | Type            | Port |
+|----------|-----------------|------|
+| api      | Express         | 8080 |
+| web      | Vite + serve    | 3000 |
+| postgres | Managed plugin  | -    |
 
-### Projects
+**Environment variables:**
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | /api/v1/projects | List user's projects | Required |
-| POST | /api/v1/projects | Create project | Required |
-| GET | /api/v1/projects/:id | Get project details | Member |
-| PATCH | /api/v1/projects/:id | Update project | Admin |
-| DELETE | /api/v1/projects/:id | Delete project | Admin |
-| POST | /api/v1/projects/:id/members | Invite member | Admin |
-| PATCH | /api/v1/projects/:id/members/:userId | Update role | Admin |
-| DELETE | /api/v1/projects/:id/members/:userId | Remove member | Admin |
-| GET | /api/v1/projects/:id/activity | Get activity log | Member |
+| Service | Variable           | Description                    |
+|---------|--------------------|--------------------------------|
+| api     | DATABASE_URL       | PostgreSQL connection string   |
+| api     | JWT_ACCESS_SECRET  | Access token signing key       |
+| api     | JWT_REFRESH_SECRET | Refresh token signing key      |
+| api     | CORS_ORIGIN        | Allowed origins (comma-sep)    |
+| api     | NODE_ENV           | production                     |
+| web     | VITE_API_URL       | API base URL (build-time)      |
 
-### Tasks
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | /api/v1/tasks/project/:projectId | List project tasks | Member |
-| POST | /api/v1/tasks/project/:projectId | Create task | Member |
-| GET | /api/v1/tasks/:id | Get task details | Member |
-| PATCH | /api/v1/tasks/:id | Update task | Owner/Admin |
-| DELETE | /api/v1/tasks/:id | Delete task | Owner/Admin |
-| GET | /api/v1/tasks/:id/comments | Get comments | Member |
-| POST | /api/v1/tasks/:id/comments | Add comment | Member |
-
-### Dashboard
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/v1/dashboard | Get dashboard data |
-
-## Folder Structure
+## Project structure
 
 ```
 taskflow/
 ├── apps/
-│   ├── api/                  # Express backend
+│   ├── api/                      # Express backend
 │   │   ├── prisma/
-│   │   │   ├── schema.prisma # Database schema
-│   │   │   └── seed.ts       # Demo data
+│   │   │   ├── schema.prisma     # Database schema
+│   │   │   └── seed.ts           # Demo data seeder
 │   │   └── src/
-│   │       ├── controllers/  # Route handlers
-│   │       ├── middleware/   # Auth, RBAC, validation
-│   │       ├── routes/       # API routes
-│   │       ├── lib/          # Utilities (Prisma, JWT, errors)
-│   │       ├── app.ts        # Express app
-│   │       └── index.ts      # Server entry
-│   └── web/                  # React frontend
+│   │       ├── controllers/      # Route handlers
+│   │       ├── middleware/       # auth, rbac, validate, error-handler
+│   │       ├── routes/           # auth, project, task, dashboard
+│   │       ├── lib/              # prisma, jwt, errors
+│   │       ├── test/             # Vitest tests
+│   │       ├── app.ts            # Express app setup
+│   │       └── index.ts          # Server entry point
+│   │
+│   └── web/                      # React frontend
 │       └── src/
-│           ├── components/   # UI components
-│           ├── contexts/     # React contexts
-│           ├── hooks/        # Custom hooks
-│           ├── lib/          # Utilities
-│           ├── pages/        # Page components
-│           ├── stores/       # Zustand stores
-│           ├── App.tsx       # Root component
-│           └── main.tsx      # Entry point
+│           ├── components/       # UI components (ui/, layout, command-palette)
+│           ├── contexts/         # auth-context, theme-context
+│           ├── hooks/            # useKeyboardShortcuts
+│           ├── lib/              # api client, utils
+│           ├── pages/            # landing, login, signup, dashboard, projects, profile
+│           ├── stores/           # Zustand stores
+│           ├── App.tsx           # Router + providers
+│           └── main.tsx          # Entry point
+│
 ├── packages/
-│   └── shared/               # Shared Zod schemas & types
-├── package.json              # Workspace config
-├── railway.json              # Railway deployment config
-└── README.md
+│   └── shared/                   # Shared between api and web
+│       └── src/
+│           ├── schemas.ts        # Zod validation schemas
+│           ├── types.ts          # TypeScript interfaces
+│           └── constants.ts      # Enums and constants
+│
+├── package.json                  # Workspace root
+└── railway.json                  # Railway config
 ```
 
-## Deployment to Railway
+## Future improvements
 
-### Prerequisites
-
-1. Railway account
-2. Railway CLI installed (`npm i -g @railway/cli`)
-
-### Steps
-
-1. **Create Railway Project**
-   ```bash
-   railway login
-   railway init
-   ```
-
-2. **Add PostgreSQL**
-   - In Railway dashboard, click "Add Service" → "Database" → "PostgreSQL"
-
-3. **Configure API Service**
-   ```bash
-   cd apps/api
-   railway up
-   ```
-   
-   Set environment variables in Railway:
-   - `DATABASE_URL` (auto-linked from PostgreSQL)
-   - `JWT_ACCESS_SECRET` (generate with `openssl rand -base64 32`)
-   - `JWT_REFRESH_SECRET` (generate with `openssl rand -base64 32`)
-   - `NODE_ENV=production`
-   - `CORS_ORIGIN=https://your-web-domain.up.railway.app`
-
-4. **Configure Web Service**
-   ```bash
-   cd apps/web
-   railway up
-   ```
-   
-   Set environment variables:
-   - `VITE_API_URL=https://your-api-domain.up.railway.app/api/v1`
-
-5. **Generate Domains**
-   - In Railway dashboard, go to each service → Settings → Generate Domain
-
-## Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| `Cmd/Ctrl + K` | Open command palette |
-| `/` | Open command palette |
-| `c` | Create new task |
-| `g p` | Go to projects |
-| `g d` | Go to dashboard |
-| `g h` | Go to home |
-
-## Future Improvements
-
-- [ ] Real-time updates with WebSockets
-- [ ] File attachments on tasks
-- [ ] Task dependencies
-- [ ] Gantt chart view
-- [ ] Email notifications
-- [ ] GitHub/GitLab integration
-- [ ] Time tracking
-- [ ] Task templates
-- [ ] Mobile app (React Native)
-- [ ] API rate limiting per user
-- [ ] Audit log export
-- [ ] SSO integration
-
-## License
-
-MIT
-
----
-
-Built for nomination submission. Modern project management that ships.
+- Real-time updates via WebSockets
+- Email notifications for assignments and mentions
+- File attachments on tasks
+- Project-level analytics
+- Mobile app
