@@ -15,8 +15,20 @@ import { prisma } from './lib/prisma';
 const app = express();
 
 app.use(helmet());
+
+const corsOrigin = process.env.CORS_ORIGIN;
+if (!corsOrigin || corsOrigin === '*') {
+  console.warn('[CORS] WARNING: CORS_ORIGIN is unset or wildcard — credentials will not work cross-origin in production');
+}
+const allowedOrigins = corsOrigin ? corsOrigin.split(',').map(o => o.trim()) : ['http://localhost:5173'];
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
